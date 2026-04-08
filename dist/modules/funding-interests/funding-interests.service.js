@@ -56,7 +56,7 @@ let FundingInterestsService = class FundingInterestsService {
     async getMyInterests(investorId) {
         return this.interestModel
             .find({ investorId: new mongoose_2.Types.ObjectId(investorId) })
-            .populate('startupId', 'name sector stage status cohortYear latestScore')
+            .populate('startupId', 'name sector stage status cohortYear latestScore description schemeName website pitchDeckLink')
             .sort({ createdAt: -1 })
             .lean();
     }
@@ -76,6 +76,7 @@ let FundingInterestsService = class FundingInterestsService {
                     currency: { $first: '$currency' },
                     interests: {
                         $push: {
+                            _id: '$_id',
                             investorId: '$investorId',
                             amount: '$amount',
                             status: '$status',

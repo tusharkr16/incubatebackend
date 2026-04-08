@@ -31,6 +31,8 @@ let Cohort = class Cohort {
     googleFormQuestionIds;
     syncedResponseIds;
     status;
+    posterUrl;
+    posterSource;
     createdBy;
 };
 exports.Cohort = Cohort;
@@ -82,6 +84,14 @@ __decorate([
     (0, mongoose_1.Prop)({ required: true, enum: CohortStatus, default: CohortStatus.OPEN }),
     __metadata("design:type", String)
 ], Cohort.prototype, "status", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: String }),
+    __metadata("design:type", String)
+], Cohort.prototype, "posterUrl", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: String }),
+    __metadata("design:type", String)
+], Cohort.prototype, "posterSource", void 0);
 __decorate([
     (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'User', required: true, index: true }),
     __metadata("design:type", mongoose_2.Types.ObjectId)

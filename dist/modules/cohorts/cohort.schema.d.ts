@@ -18,6 +18,8 @@ export declare class Cohort {
     googleFormQuestionIds: Map<string, string>;
     syncedResponseIds: string[];
     status: CohortStatus;
+    posterUrl: string;
+    posterSource: string;
     createdBy: Types.ObjectId;
 }
 export declare const CohortSchema: import("mongoose").Schema<Cohort, import("mongoose").Model<Cohort, any, any, any, any, any, Cohort>, {}, {}, {}, {}, import("mongoose").DefaultSchemaOptions, Cohort, Document<unknown, {}, Cohort, {
@@ -129,6 +131,24 @@ export declare const CohortSchema: import("mongoose").Schema<Cohort, import("mon
         id: string;
     }> | undefined;
     status?: import("mongoose").SchemaDefinitionProperty<CohortStatus, Cohort, Document<unknown, {}, Cohort, {
+        id: string;
+    }, import("mongoose").DefaultSchemaOptions> & Omit<Cohort & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }> | undefined;
+    posterUrl?: import("mongoose").SchemaDefinitionProperty<string, Cohort, Document<unknown, {}, Cohort, {
+        id: string;
+    }, import("mongoose").DefaultSchemaOptions> & Omit<Cohort & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }> | undefined;
+    posterSource?: import("mongoose").SchemaDefinitionProperty<string, Cohort, Document<unknown, {}, Cohort, {
         id: string;
     }, import("mongoose").DefaultSchemaOptions> & Omit<Cohort & {
         _id: Types.ObjectId;

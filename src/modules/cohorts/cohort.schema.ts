@@ -49,6 +49,13 @@ export class Cohort {
   @Prop({ required: true, enum: CohortStatus, default: CohortStatus.OPEN })
   status: CohortStatus;
 
+  // AI-generated poster stored on Cloudinary
+  @Prop({ type: String })
+  posterUrl: string;
+
+  @Prop({ type: String })
+  posterSource: string;
+
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   createdBy: Types.ObjectId;
 }

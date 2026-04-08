@@ -37,6 +37,7 @@ let Startup = class Startup {
     status;
     createdBy;
     cohortYear;
+    cohortId;
     description;
     website;
     latestScore;
@@ -83,6 +84,10 @@ __decorate([
     (0, mongoose_1.Prop)({ required: true, index: true }),
     __metadata("design:type", Number)
 ], Startup.prototype, "cohortYear", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'Cohort', index: true }),
+    __metadata("design:type", mongoose_2.Types.ObjectId)
+], Startup.prototype, "cohortId", void 0);
 __decorate([
     (0, mongoose_1.Prop)({ type: String }),
     __metadata("design:type", String)
@@ -136,6 +141,7 @@ exports.Startup = Startup = __decorate([
 ], Startup);
 exports.StartupSchema = mongoose_1.SchemaFactory.createForClass(Startup);
 exports.StartupSchema.index({ status: 1, cohortYear: 1 });
+exports.StartupSchema.index({ cohortId: 1 });
 exports.StartupSchema.index({ 'sector.primary': 1 });
 exports.StartupSchema.index({ latestScore: -1 });
 exports.StartupSchema.index({ assignedInvestorIds: 1 });

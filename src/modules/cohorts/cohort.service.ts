@@ -3,8 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
+import { v2 as cloudinary } from 'cloudinary';
 import { google } from 'googleapis';
-import { Cohort, CohortDocument } from './cohort.schema';
+import { Cohort, CohortDocument, CohortStatus } from './cohort.schema';
 import { Startup, StartupDocument } from '../startups/startup.schema';
 import { Founder, FounderDocument } from '../founders/founder.schema';
 import { CreateCohortDto } from './dto/create-cohort.dto';
@@ -36,6 +38,7 @@ const STAGES = ['ideation', 'validation', 'early_traction', 'growth'];
 export class CohortService {
   private readonly logger = new Logger(CohortService.name);
   private openai: OpenAI | null = null;
+  private anthropic: Anthropic | null = null;
 
   constructor(
     @InjectModel(Cohort.name) private cohortModel: Model<CohortDocument>,
@@ -43,12 +46,26 @@ export class CohortService {
     @InjectModel(Founder.name) private founderModel: Model<FounderDocument>,
     private readonly config: ConfigService,
   ) {
-    const apiKey = this.config.get<string>('OPENAI_API_KEY');
-    if (apiKey) {
-      this.openai = new OpenAI({ apiKey });
+    const openaiKey = this.config.get<string>('OPENAI_API_KEY');
+    if (openaiKey) {
+      this.openai = new OpenAI({ apiKey: openaiKey });
       this.logger.log('OpenAI client initialised — DALL·E available');
     } else {
       this.logger.warn('OPENAI_API_KEY not set — using Pollinations.ai for poster generation');
+    }
+
+    const anthropicKey = this.config.get<string>('ANTHROPIC_API_KEY');
+    if (anthropicKey) {
+      this.anthropic = new Anthropic({ apiKey: anthropicKey });
+      this.logger.log('Anthropic Claude initialised — enhanced poster prompts enabled');
+    }
+
+    const cloudName = this.config.get<string>('CLOUDINARY_CLOUD_NAME');
+    const apiKey    = this.config.get<string>('CLOUDINARY_API_KEY');
+    const apiSecret = this.config.get<string>('CLOUDINARY_API_SECRET');
+    if (cloudName && apiKey && apiSecret) {
+      cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret });
+      this.logger.log('Cloudinary configured — poster upload enabled');
     }
   }
 
@@ -111,6 +128,42 @@ export class CohortService {
     const cohort = await this.cohortModel.findById(id).lean();
     if (!cohort) throw new NotFoundException('Cohort not found');
     return cohort;
+  }
+
+  async updateStatus(id: string, status: CohortStatus) {
+    const cohort = await this.cohortModel.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true },
+    ).lean();
+    if (!cohort) throw new NotFoundException('Cohort not found');
+    return cohort;
+  }
+
+  async getStartupsByCohort(cohortId: string) {
+    const cohort = await this.cohortModel.findById(cohortId).lean();
+    if (!cohort) throw new NotFoundException('Cohort not found');
+
+    const startups = await this.startupModel
+      .find({ cohortId: (cohort as any)._id })
+      .select('name sector stage status latestScore description website createdAt founderIds')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Attach primary founder info to each startup
+    const enriched = await Promise.all(
+      startups.map(async (s) => {
+        const founder = s.founderIds?.length
+          ? await this.founderModel
+              .findById(s.founderIds[0])
+              .select('name email linkedinUrl skills bio')
+              .lean()
+          : null;
+        return { ...s, founder };
+      }),
+    );
+
+    return enriched;
   }
 
   // ── Google Forms: Create ──────────────────────────────────────────────────
@@ -339,6 +392,7 @@ export class CohortService {
       },
       stage: dto.stage ?? 'ideation',
       cohortYear: cohort.year,
+      cohortId: (cohort as any)._id,
       description: dto.description?.trim(),
       website: dto.website?.trim(),
       status: StartupStatus.ACTIVE,
@@ -368,17 +422,42 @@ export class CohortService {
 
   // ── AI Poster Generation ──────────────────────────────────────────────────
 
-  async generatePoster(cohort: {
-    name: string;
-    year: number;
-    tagline?: string;
-    sectors?: string[];
-    description?: string;
-  }): Promise<{ imageUrl?: string; source?: string; error?: string }> {
-    const sectorList =
-      cohort.sectors?.length ? cohort.sectors.join(', ') : 'Technology & Innovation';
+  /** Uses Claude to craft a vivid image prompt, then passes it to DALL·E or Pollinations */
+  private async buildPosterPromptWithClaude(cohort: {
+    name: string; year: number; tagline?: string; sectors?: string[]; description?: string;
+  }): Promise<string> {
+    const sectorList = cohort.sectors?.length ? cohort.sectors.join(', ') : 'Technology & Innovation';
+    const input = `Create a single vivid image-generation prompt (max 300 words) for a startup incubator cohort poster with these details:
+- Cohort name: "${cohort.name}"
+- Year: ${cohort.year}
+- Tagline: "${cohort.tagline ?? 'Empowering founders'}"
+- Focus sectors: ${sectorList}
+- Description: ${cohort.description ?? 'A cutting-edge startup incubator program'}
 
-    const prompt = [
+Requirements for the prompt:
+- Deep violet/indigo gradient background with glowing neon accents
+- Futuristic tech aesthetic with abstract geometric shapes
+- The cohort name "${cohort.name}" must appear prominently
+- Professional, modern typography feel
+- Landscape orientation (16:9), high resolution
+- Cinematic lighting and depth
+Output only the image prompt, nothing else.`;
+
+    const message = await this.anthropic!.messages.create({
+      model: 'claude-3-5-haiku-20241022',
+      max_tokens: 400,
+      messages: [{ role: 'user', content: input }],
+    });
+
+    const text = (message.content[0] as any)?.text ?? '';
+    return text.trim() || this.buildBasicPrompt(cohort);
+  }
+
+  private buildBasicPrompt(cohort: {
+    name: string; year: number; tagline?: string; sectors?: string[]; description?: string;
+  }): string {
+    const sectorList = cohort.sectors?.length ? cohort.sectors.join(', ') : 'Technology & Innovation';
+    return [
       `Professional startup incubator program poster for "${cohort.name}" Cohort ${cohort.year}.`,
       `Theme: ${cohort.tagline ?? 'Empowering the next generation of founders'}.`,
       `Focus sectors: ${sectorList}.`,
@@ -386,10 +465,33 @@ export class CohortService {
       'Style: Bold tech aesthetic, deep violet and indigo gradient background,',
       'clean modern typography, geometric abstract glowing shapes, futuristic startup vibe.',
       'Show cohort name prominently. High quality, landscape format.',
-    ]
-      .filter(Boolean)
-      .join(' ');
+    ].filter(Boolean).join(' ');
+  }
 
+  async generatePoster(
+    cohort: { name: string; year: number; tagline?: string; sectors?: string[]; description?: string },
+    cohortId?: string,
+  ): Promise<{ imageUrl?: string; cloudinaryUrl?: string; source?: string; error?: string }> {
+    // Use Claude to craft an enhanced visual prompt if key is configured
+    let prompt: string;
+    let posterSource = 'pollinations';
+
+    if (this.anthropic) {
+      try {
+        prompt = await this.buildPosterPromptWithClaude(cohort);
+        posterSource = 'claude+pollinations';
+        this.logger.log('Claude enhanced poster prompt generated');
+      } catch (err: any) {
+        this.logger.warn(`Claude prompt generation failed (${err?.message}), using basic prompt`);
+        prompt = this.buildBasicPrompt(cohort);
+      }
+    } else {
+      prompt = this.buildBasicPrompt(cohort);
+    }
+
+    let rawImageUrl: string | undefined;
+
+    // Try DALL·E first (if OpenAI key is set)
     if (this.openai) {
       try {
         const response = await this.openai.images.generate({
@@ -400,18 +502,61 @@ export class CohortService {
           quality: 'standard',
           style: 'vivid',
         });
-        const imageUrl = response.data?.[0]?.url;
-        if (imageUrl) return { imageUrl, source: 'dalle' };
+        rawImageUrl = response.data?.[0]?.url;
+        if (rawImageUrl) posterSource = this.anthropic ? 'claude+dalle' : 'dalle';
       } catch (err: any) {
         this.logger.warn(`DALL·E failed (${err?.message}), falling back to Pollinations.ai`);
       }
     }
 
-    const seed = Math.floor(Math.random() * 999999);
-    const pollinationsUrl =
-      `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
-      `?width=1792&height=1024&nologo=true&seed=${seed}&model=flux`;
+    // Fallback: Pollinations.ai (free, no key needed)
+    if (!rawImageUrl) {
+      const seed = Math.floor(Math.random() * 999999);
+      rawImageUrl =
+        `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
+        `?width=1792&height=1024&nologo=true&seed=${seed}&model=flux`;
+    }
 
-    return { imageUrl: pollinationsUrl, source: 'pollinations' };
+    // Upload to Cloudinary for a permanent, CDN-served URL
+    let cloudinaryUrl: string | undefined;
+    try {
+      const publicId = `cohort-posters/${cohortId ?? cohort.name.replace(/\s+/g, '-').toLowerCase()}-${cohort.year}`;
+      const uploaded = await cloudinary.uploader.upload(rawImageUrl, {
+        public_id: publicId,
+        overwrite: true,
+        folder: undefined, // public_id already includes the folder prefix
+        resource_type: 'image',
+        timeout: 120000,
+      });
+      cloudinaryUrl = uploaded.secure_url;
+      this.logger.log(`Poster uploaded to Cloudinary: ${cloudinaryUrl}`);
+
+      // Persist the URL back on the cohort document
+      if (cohortId) {
+        await this.cohortModel.findByIdAndUpdate(cohortId, {
+          posterUrl: cloudinaryUrl,
+          posterSource,
+        });
+      }
+    } catch (err: any) {
+      this.logger.warn(`Cloudinary upload failed (${err?.message}) — returning raw URL`);
+    }
+
+    return { imageUrl: rawImageUrl, cloudinaryUrl, source: posterSource };
+  }
+
+  /** Upload a base64-encoded image (from frontend canvas) to Cloudinary and persist the URL */
+  async uploadPosterFromBase64(cohortId: string, imageData: string): Promise<{ cloudinaryUrl: string }> {
+    const uploaded = await cloudinary.uploader.upload(imageData, {
+      public_id: `cohort-posters/cohort-${cohortId}`,
+      overwrite: true,
+      resource_type: 'image',
+    });
+    await this.cohortModel.findByIdAndUpdate(cohortId, {
+      posterUrl: uploaded.secure_url,
+      posterSource: 'canvas',
+    });
+    this.logger.log(`Canvas poster uploaded to Cloudinary: ${uploaded.secure_url}`);
+    return { cloudinaryUrl: uploaded.secure_url };
   }
 }

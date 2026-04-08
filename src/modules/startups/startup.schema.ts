@@ -43,6 +43,10 @@ export class Startup {
   @Prop({ required: true, index: true })
   cohortYear: number;
 
+  // Reference to the specific Cohort document the startup applied through
+  @Prop({ type: Types.ObjectId, ref: 'Cohort', index: true })
+  cohortId: Types.ObjectId;
+
   @Prop({ type: String })
   description: string;
 
@@ -86,6 +90,7 @@ export const StartupSchema = SchemaFactory.createForClass(Startup);
 
 // Indexes for common query patterns
 StartupSchema.index({ status: 1, cohortYear: 1 });
+StartupSchema.index({ cohortId: 1 });
 StartupSchema.index({ 'sector.primary': 1 });
 StartupSchema.index({ latestScore: -1 }); // for ranked listings
 StartupSchema.index({ assignedInvestorIds: 1 });

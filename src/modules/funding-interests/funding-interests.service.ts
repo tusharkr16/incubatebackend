@@ -57,7 +57,7 @@ export class FundingInterestsService {
   async getMyInterests(investorId: string) {
     return this.interestModel
       .find({ investorId: new Types.ObjectId(investorId) })
-      .populate('startupId', 'name sector stage status cohortYear latestScore')
+      .populate('startupId', 'name sector stage status cohortYear latestScore description schemeName website pitchDeckLink')
       .sort({ createdAt: -1 })
       .lean();
   }
@@ -82,6 +82,7 @@ export class FundingInterestsService {
           currency: { $first: '$currency' },
           interests: {
             $push: {
+              _id: '$_id',
               investorId: '$investorId',
               amount: '$amount',
               status: '$status',

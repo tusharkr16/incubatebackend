@@ -10,6 +10,7 @@ export declare class EvaluationsController {
     } & {
         id: string;
     }>;
+    getEvaluatedStartups(): Promise<any[]>;
     findByStartup(startupId: string): Promise<(import("./evaluation.schema").Evaluation & import("mongoose").Document<import("mongoose").Types.ObjectId, any, any, Record<string, any>, {}> & Required<{
         _id: import("mongoose").Types.ObjectId;
     }> & {

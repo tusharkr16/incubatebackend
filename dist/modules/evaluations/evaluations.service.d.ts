@@ -21,6 +21,7 @@ export declare class EvaluationsService {
         __v: number;
     })[]>;
     getStartupAggregateScore(startupId: string): Promise<any>;
+    getEvaluatedStartups(): Promise<any[]>;
     private computeTotalScore;
     private recalculateStartupScore;
 }

@@ -15,6 +15,13 @@ export class EvaluationsController {
     return this.evaluationsService.create(dto, reviewerId);
   }
 
+  /** All startups with at least one evaluation — investor evaluate page */
+  @Get('evaluated-startups')
+  @Roles(UserRole.INVESTOR, UserRole.ADMIN, UserRole.CEO)
+  getEvaluatedStartups() {
+    return this.evaluationsService.getEvaluatedStartups();
+  }
+
   @Get('startup/:startupId')
   @Roles(UserRole.ADMIN, UserRole.CEO, UserRole.INVESTOR, UserRole.FOUNDER)
   findByStartup(@Param('startupId') startupId: string) {

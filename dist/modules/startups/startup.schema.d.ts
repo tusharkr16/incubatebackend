@@ -14,6 +14,7 @@ export declare class Startup {
     status: StartupStatus;
     createdBy: Types.ObjectId;
     cohortYear: number;
+    cohortId: Types.ObjectId;
     description: string;
     website: string;
     latestScore: number;
@@ -100,6 +101,15 @@ export declare const StartupSchema: import("mongoose").Schema<Startup, import("m
         id: string;
     }> | undefined;
     cohortYear?: import("mongoose").SchemaDefinitionProperty<number, Startup, Document<unknown, {}, Startup, {
+        id: string;
+    }, import("mongoose").DefaultSchemaOptions> & Omit<Startup & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }> | undefined;
+    cohortId?: import("mongoose").SchemaDefinitionProperty<Types.ObjectId, Startup, Document<unknown, {}, Startup, {
         id: string;
     }, import("mongoose").DefaultSchemaOptions> & Omit<Startup & {
         _id: Types.ObjectId;

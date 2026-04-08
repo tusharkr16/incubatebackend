@@ -14,12 +14,20 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CohortController = void 0;
 const common_1 = require("@nestjs/common");
+const class_validator_1 = require("class-validator");
 const cohort_service_1 = require("./cohort.service");
 const create_cohort_dto_1 = require("./dto/create-cohort.dto");
 const apply_cohort_dto_1 = require("./dto/apply-cohort.dto");
 const roles_decorator_1 = require("../../common/decorators/roles.decorator");
 const public_decorator_1 = require("../../common/decorators/public.decorator");
 const enums_1 = require("../../common/enums");
+class UploadPosterDto {
+    imageData;
+}
+__decorate([
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UploadPosterDto.prototype, "imageData", void 0);
 class GeneratePosterDto {
     name;
     year;
@@ -27,6 +35,30 @@ class GeneratePosterDto {
     sectors;
     description;
 }
+__decorate([
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], GeneratePosterDto.prototype, "name", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], GeneratePosterDto.prototype, "year", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], GeneratePosterDto.prototype, "tagline", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsString)({ each: true }),
+    __metadata("design:type", Array)
+], GeneratePosterDto.prototype, "sectors", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], GeneratePosterDto.prototype, "description", void 0);
 let CohortController = class CohortController {
     cohortService;
     constructor(cohortService) {
@@ -41,8 +73,20 @@ let CohortController = class CohortController {
     generatePoster(body) {
         return this.cohortService.generatePoster(body);
     }
+    generatePosterForCohort(id, body) {
+        return this.cohortService.generatePoster(body, id);
+    }
+    uploadPoster(id, body) {
+        return this.cohortService.uploadPosterFromBase64(id, body.imageData);
+    }
     syncResponses(id) {
         return this.cohortService.syncFormResponses(id);
+    }
+    updateStatus(id, status) {
+        return this.cohortService.updateStatus(id, status);
+    }
+    getStartupsByCohort(id) {
+        return this.cohortService.getStartupsByCohort(id);
     }
     findOne(id) {
         return this.cohortService.findOne(id);
@@ -78,6 +122,24 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], CohortController.prototype, "generatePoster", null);
 __decorate([
+    (0, common_1.Post)(':id/generate-poster'),
+    (0, roles_decorator_1.Roles)(enums_1.UserRole.ADMIN, enums_1.UserRole.CEO),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, GeneratePosterDto]),
+    __metadata("design:returntype", void 0)
+], CohortController.prototype, "generatePosterForCohort", null);
+__decorate([
+    (0, common_1.Post)(':id/upload-poster'),
+    (0, roles_decorator_1.Roles)(enums_1.UserRole.ADMIN, enums_1.UserRole.CEO),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, UploadPosterDto]),
+    __metadata("design:returntype", void 0)
+], CohortController.prototype, "uploadPoster", null);
+__decorate([
     (0, common_1.Post)(':id/sync-responses'),
     (0, roles_decorator_1.Roles)(enums_1.UserRole.ADMIN, enums_1.UserRole.CEO),
     __param(0, (0, common_1.Param)('id')),
@@ -85,6 +147,23 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], CohortController.prototype, "syncResponses", null);
+__decorate([
+    (0, common_1.Patch)(':id/status'),
+    (0, roles_decorator_1.Roles)(enums_1.UserRole.ADMIN, enums_1.UserRole.CEO),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)('status')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], CohortController.prototype, "updateStatus", null);
+__decorate([
+    (0, common_1.Get)(':id/startups'),
+    (0, roles_decorator_1.Roles)(enums_1.UserRole.ADMIN, enums_1.UserRole.CEO),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], CohortController.prototype, "getStartupsByCohort", null);
 __decorate([
     (0, common_1.Get)(':id'),
     (0, public_decorator_1.Public)(),

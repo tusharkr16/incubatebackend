@@ -81,6 +81,72 @@ export class EvaluationsService {
     return result[0] ?? null;
   }
 
+  /**
+   * All startups that have been evaluated by at least one investor/reviewer,
+   * with aggregated score, eval count, and individual evaluation details.
+   */
+  async getEvaluatedStartups() {
+    return this.evaluationModel.aggregate([
+      {
+        $group: {
+          _id: '$startupId',
+          evalCount: { $sum: 1 },
+          avgScore: { $avg: '$totalScore' },
+          evaluations: {
+            $push: {
+              reviewerId: '$reviewerId',
+              totalScore: '$totalScore',
+              recommendation: '$recommendation',
+              notes: '$notes',
+              createdAt: '$createdAt',
+            },
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: 'startups',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'startup',
+        },
+      },
+      { $unwind: '$startup' },
+      // Enrich reviewer names
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'evaluations.reviewerId',
+          foreignField: '_id',
+          as: 'reviewerUsers',
+        },
+      },
+      { $sort: { avgScore: -1 } },
+      {
+        $project: {
+          _id: 0,
+          startupId: '$_id',
+          startupName: '$startup.name',
+          sector: '$startup.sector',
+          stage: '$startup.stage',
+          status: '$startup.status',
+          latestScore: '$startup.latestScore',
+          cohortYear: '$startup.cohortYear',
+          evalCount: 1,
+          avgScore: 1,
+          evaluations: 1,
+          reviewerUsers: {
+            $map: {
+              input: '$reviewerUsers',
+              as: 'u',
+              in: { _id: '$$u._id', name: '$$u.name', email: '$$u.email' },
+            },
+          },
+        },
+      },
+    ]);
+  }
+
   private computeTotalScore(scores: CreateEvaluationDto['scores']): number {
     return (
       scores.sector +

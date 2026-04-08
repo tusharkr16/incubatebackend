@@ -27,6 +27,9 @@ let EvaluationsController = class EvaluationsController {
     create(dto, reviewerId) {
         return this.evaluationsService.create(dto, reviewerId);
     }
+    getEvaluatedStartups() {
+        return this.evaluationsService.getEvaluatedStartups();
+    }
     findByStartup(startupId) {
         return this.evaluationsService.findByStartup(startupId);
     }
@@ -44,6 +47,13 @@ __decorate([
     __metadata("design:paramtypes", [evaluation_dto_1.CreateEvaluationDto, String]),
     __metadata("design:returntype", void 0)
 ], EvaluationsController.prototype, "create", null);
+__decorate([
+    (0, common_1.Get)('evaluated-startups'),
+    (0, roles_decorator_1.Roles)(enums_1.UserRole.INVESTOR, enums_1.UserRole.ADMIN, enums_1.UserRole.CEO),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], EvaluationsController.prototype, "getEvaluatedStartups", null);
 __decorate([
     (0, common_1.Get)('startup/:startupId'),
     (0, roles_decorator_1.Roles)(enums_1.UserRole.ADMIN, enums_1.UserRole.CEO, enums_1.UserRole.INVESTOR, enums_1.UserRole.FOUNDER),

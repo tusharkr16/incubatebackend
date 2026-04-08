@@ -22,6 +22,8 @@ const config_1 = require("@nestjs/config");
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const openai_1 = __importDefault(require("openai"));
+const sdk_1 = __importDefault(require("@anthropic-ai/sdk"));
+const cloudinary_1 = require("cloudinary");
 const googleapis_1 = require("googleapis");
 const cohort_schema_1 = require("./cohort.schema");
 const startup_schema_1 = require("../startups/startup.schema");
@@ -52,18 +54,31 @@ let CohortService = CohortService_1 = class CohortService {
     config;
     logger = new common_1.Logger(CohortService_1.name);
     openai = null;
+    anthropic = null;
     constructor(cohortModel, startupModel, founderModel, config) {
         this.cohortModel = cohortModel;
         this.startupModel = startupModel;
         this.founderModel = founderModel;
         this.config = config;
-        const apiKey = this.config.get('OPENAI_API_KEY');
-        if (apiKey) {
-            this.openai = new openai_1.default({ apiKey });
+        const openaiKey = this.config.get('OPENAI_API_KEY');
+        if (openaiKey) {
+            this.openai = new openai_1.default({ apiKey: openaiKey });
             this.logger.log('OpenAI client initialised — DALL·E available');
         }
         else {
             this.logger.warn('OPENAI_API_KEY not set — using Pollinations.ai for poster generation');
+        }
+        const anthropicKey = this.config.get('ANTHROPIC_API_KEY');
+        if (anthropicKey) {
+            this.anthropic = new sdk_1.default({ apiKey: anthropicKey });
+            this.logger.log('Anthropic Claude initialised — enhanced poster prompts enabled');
+        }
+        const cloudName = this.config.get('CLOUDINARY_CLOUD_NAME');
+        const apiKey = this.config.get('CLOUDINARY_API_KEY');
+        const apiSecret = this.config.get('CLOUDINARY_API_SECRET');
+        if (cloudName && apiKey && apiSecret) {
+            cloudinary_1.v2.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret });
+            this.logger.log('Cloudinary configured — poster upload enabled');
         }
     }
     getFormsClient() {
@@ -117,6 +132,32 @@ let CohortService = CohortService_1 = class CohortService {
         if (!cohort)
             throw new common_1.NotFoundException('Cohort not found');
         return cohort;
+    }
+    async updateStatus(id, status) {
+        const cohort = await this.cohortModel.findByIdAndUpdate(id, { status }, { new: true }).lean();
+        if (!cohort)
+            throw new common_1.NotFoundException('Cohort not found');
+        return cohort;
+    }
+    async getStartupsByCohort(cohortId) {
+        const cohort = await this.cohortModel.findById(cohortId).lean();
+        if (!cohort)
+            throw new common_1.NotFoundException('Cohort not found');
+        const startups = await this.startupModel
+            .find({ cohortId: cohort._id })
+            .select('name sector stage status latestScore description website createdAt founderIds')
+            .sort({ createdAt: -1 })
+            .lean();
+        const enriched = await Promise.all(startups.map(async (s) => {
+            const founder = s.founderIds?.length
+                ? await this.founderModel
+                    .findById(s.founderIds[0])
+                    .select('name email linkedinUrl skills bio')
+                    .lean()
+                : null;
+            return { ...s, founder };
+        }));
+        return enriched;
     }
     async createGoogleForm(cohort) {
         const forms = this.getFormsClient();
@@ -308,6 +349,7 @@ let CohortService = CohortService_1 = class CohortService {
             },
             stage: dto.stage ?? 'ideation',
             cohortYear: cohort.year,
+            cohortId: cohort._id,
             description: dto.description?.trim(),
             website: dto.website?.trim(),
             status: enums_1.StartupStatus.ACTIVE,
@@ -331,9 +373,34 @@ let CohortService = CohortService_1 = class CohortService {
             cohortYear: cohort.year,
         };
     }
-    async generatePoster(cohort) {
+    async buildPosterPromptWithClaude(cohort) {
         const sectorList = cohort.sectors?.length ? cohort.sectors.join(', ') : 'Technology & Innovation';
-        const prompt = [
+        const input = `Create a single vivid image-generation prompt (max 300 words) for a startup incubator cohort poster with these details:
+- Cohort name: "${cohort.name}"
+- Year: ${cohort.year}
+- Tagline: "${cohort.tagline ?? 'Empowering founders'}"
+- Focus sectors: ${sectorList}
+- Description: ${cohort.description ?? 'A cutting-edge startup incubator program'}
+
+Requirements for the prompt:
+- Deep violet/indigo gradient background with glowing neon accents
+- Futuristic tech aesthetic with abstract geometric shapes
+- The cohort name "${cohort.name}" must appear prominently
+- Professional, modern typography feel
+- Landscape orientation (16:9), high resolution
+- Cinematic lighting and depth
+Output only the image prompt, nothing else.`;
+        const message = await this.anthropic.messages.create({
+            model: 'claude-3-5-haiku-20241022',
+            max_tokens: 400,
+            messages: [{ role: 'user', content: input }],
+        });
+        const text = message.content[0]?.text ?? '';
+        return text.trim() || this.buildBasicPrompt(cohort);
+    }
+    buildBasicPrompt(cohort) {
+        const sectorList = cohort.sectors?.length ? cohort.sectors.join(', ') : 'Technology & Innovation';
+        return [
             `Professional startup incubator program poster for "${cohort.name}" Cohort ${cohort.year}.`,
             `Theme: ${cohort.tagline ?? 'Empowering the next generation of founders'}.`,
             `Focus sectors: ${sectorList}.`,
@@ -341,9 +408,26 @@ let CohortService = CohortService_1 = class CohortService {
             'Style: Bold tech aesthetic, deep violet and indigo gradient background,',
             'clean modern typography, geometric abstract glowing shapes, futuristic startup vibe.',
             'Show cohort name prominently. High quality, landscape format.',
-        ]
-            .filter(Boolean)
-            .join(' ');
+        ].filter(Boolean).join(' ');
+    }
+    async generatePoster(cohort, cohortId) {
+        let prompt;
+        let posterSource = 'pollinations';
+        if (this.anthropic) {
+            try {
+                prompt = await this.buildPosterPromptWithClaude(cohort);
+                posterSource = 'claude+pollinations';
+                this.logger.log('Claude enhanced poster prompt generated');
+            }
+            catch (err) {
+                this.logger.warn(`Claude prompt generation failed (${err?.message}), using basic prompt`);
+                prompt = this.buildBasicPrompt(cohort);
+            }
+        }
+        else {
+            prompt = this.buildBasicPrompt(cohort);
+        }
+        let rawImageUrl;
         if (this.openai) {
             try {
                 const response = await this.openai.images.generate({
@@ -354,18 +438,56 @@ let CohortService = CohortService_1 = class CohortService {
                     quality: 'standard',
                     style: 'vivid',
                 });
-                const imageUrl = response.data?.[0]?.url;
-                if (imageUrl)
-                    return { imageUrl, source: 'dalle' };
+                rawImageUrl = response.data?.[0]?.url;
+                if (rawImageUrl)
+                    posterSource = this.anthropic ? 'claude+dalle' : 'dalle';
             }
             catch (err) {
                 this.logger.warn(`DALL·E failed (${err?.message}), falling back to Pollinations.ai`);
             }
         }
-        const seed = Math.floor(Math.random() * 999999);
-        const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
-            `?width=1792&height=1024&nologo=true&seed=${seed}&model=flux`;
-        return { imageUrl: pollinationsUrl, source: 'pollinations' };
+        if (!rawImageUrl) {
+            const seed = Math.floor(Math.random() * 999999);
+            rawImageUrl =
+                `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
+                    `?width=1792&height=1024&nologo=true&seed=${seed}&model=flux`;
+        }
+        let cloudinaryUrl;
+        try {
+            const publicId = `cohort-posters/${cohortId ?? cohort.name.replace(/\s+/g, '-').toLowerCase()}-${cohort.year}`;
+            const uploaded = await cloudinary_1.v2.uploader.upload(rawImageUrl, {
+                public_id: publicId,
+                overwrite: true,
+                folder: undefined,
+                resource_type: 'image',
+                timeout: 120000,
+            });
+            cloudinaryUrl = uploaded.secure_url;
+            this.logger.log(`Poster uploaded to Cloudinary: ${cloudinaryUrl}`);
+            if (cohortId) {
+                await this.cohortModel.findByIdAndUpdate(cohortId, {
+                    posterUrl: cloudinaryUrl,
+                    posterSource,
+                });
+            }
+        }
+        catch (err) {
+            this.logger.warn(`Cloudinary upload failed (${err?.message}) — returning raw URL`);
+        }
+        return { imageUrl: rawImageUrl, cloudinaryUrl, source: posterSource };
+    }
+    async uploadPosterFromBase64(cohortId, imageData) {
+        const uploaded = await cloudinary_1.v2.uploader.upload(imageData, {
+            public_id: `cohort-posters/cohort-${cohortId}`,
+            overwrite: true,
+            resource_type: 'image',
+        });
+        await this.cohortModel.findByIdAndUpdate(cohortId, {
+            posterUrl: uploaded.secure_url,
+            posterSource: 'canvas',
+        });
+        this.logger.log(`Canvas poster uploaded to Cloudinary: ${uploaded.secure_url}`);
+        return { cloudinaryUrl: uploaded.secure_url };
     }
 };
 exports.CohortService = CohortService;
