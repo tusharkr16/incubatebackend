@@ -3,7 +3,15 @@ export declare enum UserRole {
     CEO = "ceo",
     FOUNDER = "founder",
     INVESTOR = "investor",
-    FINANCE = "finance"
+    FINANCE = "finance",
+    ACCOUNT_MANAGER = "account_manager"
+}
+export declare enum GrantApplicationStatus {
+    INTERESTED = "interested",
+    IN_PROGRESS = "in_progress",
+    SUBMITTED = "submitted",
+    APPROVED = "approved",
+    REJECTED = "rejected"
 }
 export declare enum StartupStage {
     IDEATION = "ideation",
@@ -61,7 +69,9 @@ export declare enum AuditAction {
 export declare enum FundingInterestStatus {
     PENDING = "pending",
     ACCEPTED = "accepted",
-    REJECTED = "rejected"
+    REJECTED = "rejected",
+    HOLD = "hold",
+    ENQUIRE = "enquire"
 }
 export declare enum AuditEntityType {
     USER = "user",

@@ -19,6 +19,8 @@ let FundingInterest = class FundingInterest {
     amount;
     currency;
     message;
+    phone;
+    contactUrl;
     status;
 };
 exports.FundingInterest = FundingInterest;
@@ -42,6 +44,14 @@ __decorate([
     (0, mongoose_1.Prop)({ type: String, maxlength: 1000 }),
     __metadata("design:type", String)
 ], FundingInterest.prototype, "message", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: String, maxlength: 30 }),
+    __metadata("design:type", String)
+], FundingInterest.prototype, "phone", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: String, maxlength: 500 }),
+    __metadata("design:type", String)
+], FundingInterest.prototype, "contactUrl", void 0);
 __decorate([
     (0, mongoose_1.Prop)({
         required: true,

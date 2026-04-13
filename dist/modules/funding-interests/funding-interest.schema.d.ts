@@ -7,6 +7,8 @@ export declare class FundingInterest {
     amount: number;
     currency: string;
     message: string;
+    phone: string;
+    contactUrl: string;
     status: FundingInterestStatus;
 }
 export declare const FundingInterestSchema: import("mongoose").Schema<FundingInterest, import("mongoose").Model<FundingInterest, any, any, any, any, any, FundingInterest>, {}, {}, {}, {}, import("mongoose").DefaultSchemaOptions, FundingInterest, Document<unknown, {}, FundingInterest, {
@@ -55,6 +57,24 @@ export declare const FundingInterestSchema: import("mongoose").Schema<FundingInt
         id: string;
     }> | undefined;
     message?: import("mongoose").SchemaDefinitionProperty<string, FundingInterest, Document<unknown, {}, FundingInterest, {
+        id: string;
+    }, import("mongoose").DefaultSchemaOptions> & Omit<FundingInterest & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }> | undefined;
+    phone?: import("mongoose").SchemaDefinitionProperty<string, FundingInterest, Document<unknown, {}, FundingInterest, {
+        id: string;
+    }, import("mongoose").DefaultSchemaOptions> & Omit<FundingInterest & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }, "id"> & {
+        id: string;
+    }> | undefined;
+    contactUrl?: import("mongoose").SchemaDefinitionProperty<string, FundingInterest, Document<unknown, {}, FundingInterest, {
         id: string;
     }, import("mongoose").DefaultSchemaOptions> & Omit<FundingInterest & {
         _id: Types.ObjectId;

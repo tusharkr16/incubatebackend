@@ -22,6 +22,13 @@ export class FundingInterest {
   @Prop({ type: String, maxlength: 1000 })
   message: string;
 
+  @Prop({ type: String, maxlength: 30 })
+  phone: string;
+
+  /** LinkedIn profile, personal website, or other contact URL */
+  @Prop({ type: String, maxlength: 500 })
+  contactUrl: string;
+
   @Prop({
     required: true,
     enum: FundingInterestStatus,

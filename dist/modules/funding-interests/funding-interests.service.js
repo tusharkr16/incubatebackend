@@ -30,7 +30,7 @@ let FundingInterestsService = class FundingInterestsService {
         });
         if (existing) {
             return this.interestModel
-                .findByIdAndUpdate(existing._id, { amount: dto.amount, currency: dto.currency ?? 'INR', message: dto.message }, { new: true })
+                .findByIdAndUpdate(existing._id, { amount: dto.amount, currency: dto.currency ?? 'INR', message: dto.message, phone: dto.phone, contactUrl: dto.contactUrl }, { new: true })
                 .populate('investorId', 'name email')
                 .lean();
         }
@@ -40,6 +40,8 @@ let FundingInterestsService = class FundingInterestsService {
             amount: dto.amount,
             currency: dto.currency ?? 'INR',
             message: dto.message,
+            phone: dto.phone,
+            contactUrl: dto.contactUrl,
         });
         return this.interestModel
             .findById(interest._id)

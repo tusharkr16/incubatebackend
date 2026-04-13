@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AuditEntityType = exports.FundingInterestStatus = exports.AuditAction = exports.DocumentType = exports.DisbursementStatus = exports.MilestoneStatus = exports.StartupStatus = exports.StartupStage = exports.UserRole = void 0;
+exports.AuditEntityType = exports.FundingInterestStatus = exports.AuditAction = exports.DocumentType = exports.DisbursementStatus = exports.MilestoneStatus = exports.StartupStatus = exports.StartupStage = exports.GrantApplicationStatus = exports.UserRole = void 0;
 var UserRole;
 (function (UserRole) {
     UserRole["ADMIN"] = "admin";
@@ -8,7 +8,16 @@ var UserRole;
     UserRole["FOUNDER"] = "founder";
     UserRole["INVESTOR"] = "investor";
     UserRole["FINANCE"] = "finance";
+    UserRole["ACCOUNT_MANAGER"] = "account_manager";
 })(UserRole || (exports.UserRole = UserRole = {}));
+var GrantApplicationStatus;
+(function (GrantApplicationStatus) {
+    GrantApplicationStatus["INTERESTED"] = "interested";
+    GrantApplicationStatus["IN_PROGRESS"] = "in_progress";
+    GrantApplicationStatus["SUBMITTED"] = "submitted";
+    GrantApplicationStatus["APPROVED"] = "approved";
+    GrantApplicationStatus["REJECTED"] = "rejected";
+})(GrantApplicationStatus || (exports.GrantApplicationStatus = GrantApplicationStatus = {}));
 var StartupStage;
 (function (StartupStage) {
     StartupStage["IDEATION"] = "ideation";
@@ -73,6 +82,8 @@ var FundingInterestStatus;
     FundingInterestStatus["PENDING"] = "pending";
     FundingInterestStatus["ACCEPTED"] = "accepted";
     FundingInterestStatus["REJECTED"] = "rejected";
+    FundingInterestStatus["HOLD"] = "hold";
+    FundingInterestStatus["ENQUIRE"] = "enquire";
 })(FundingInterestStatus || (exports.FundingInterestStatus = FundingInterestStatus = {}));
 var AuditEntityType;
 (function (AuditEntityType) {

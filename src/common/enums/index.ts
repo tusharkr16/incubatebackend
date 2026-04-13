@@ -4,6 +4,15 @@ export enum UserRole {
   FOUNDER = 'founder',
   INVESTOR = 'investor',
   FINANCE = 'finance',
+  ACCOUNT_MANAGER = 'account_manager',
+}
+
+export enum GrantApplicationStatus {
+  INTERESTED = 'interested',
+  IN_PROGRESS = 'in_progress',
+  SUBMITTED = 'submitted',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
 }
 
 export enum StartupStage {
@@ -71,6 +80,8 @@ export enum FundingInterestStatus {
   PENDING = 'pending',
   ACCEPTED = 'accepted',
   REJECTED = 'rejected',
+  HOLD = 'hold',
+  ENQUIRE = 'enquire',
 }
 
 export enum AuditEntityType {

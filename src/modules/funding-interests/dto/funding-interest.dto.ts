@@ -1,4 +1,4 @@
-import { IsMongoId, IsNumber, IsOptional, IsString, Min, IsEnum } from 'class-validator';
+import { IsMongoId, IsNumber, IsOptional, IsString, Min, IsEnum, IsUrl } from 'class-validator';
 import { FundingInterestStatus } from '../../../common/enums';
 
 export class CreateFundingInterestDto {
@@ -16,6 +16,14 @@ export class CreateFundingInterestDto {
   @IsOptional()
   @IsString()
   message?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsUrl({}, { message: 'contactUrl must be a valid URL' })
+  contactUrl?: string;
 }
 
 export class UpdateFundingInterestDto {

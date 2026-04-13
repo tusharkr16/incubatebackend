@@ -17,6 +17,8 @@ class CreateFundingInterestDto {
     amount;
     currency;
     message;
+    phone;
+    contactUrl;
 }
 exports.CreateFundingInterestDto = CreateFundingInterestDto;
 __decorate([
@@ -38,6 +40,16 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateFundingInterestDto.prototype, "message", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateFundingInterestDto.prototype, "phone", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsUrl)({}, { message: 'contactUrl must be a valid URL' }),
+    __metadata("design:type", String)
+], CreateFundingInterestDto.prototype, "contactUrl", void 0);
 class UpdateFundingInterestDto {
     status;
 }

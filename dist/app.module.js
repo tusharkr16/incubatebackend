@@ -23,6 +23,10 @@ const audit_module_1 = require("./modules/audit/audit.module");
 const intelligence_module_1 = require("./modules/intelligence/intelligence.module");
 const cohort_module_1 = require("./modules/cohorts/cohort.module");
 const funding_interests_module_1 = require("./modules/funding-interests/funding-interests.module");
+const account_manager_module_1 = require("./modules/account-manager/account-manager.module");
+const grants_module_1 = require("./modules/grants/grants.module");
+const chat_module_1 = require("./modules/chat/chat.module");
+const budget_module_1 = require("./modules/budget/budget.module");
 const app_controller_1 = require("./app.controller");
 const jwt_auth_guard_1 = require("./common/guards/jwt-auth.guard");
 const roles_guard_1 = require("./common/guards/roles.guard");
@@ -54,6 +58,10 @@ exports.AppModule = AppModule = __decorate([
             intelligence_module_1.IntelligenceModule,
             cohort_module_1.CohortModule,
             funding_interests_module_1.FundingInterestsModule,
+            account_manager_module_1.AccountManagerModule,
+            grants_module_1.GrantsModule,
+            chat_module_1.ChatModule,
+            budget_module_1.BudgetModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [

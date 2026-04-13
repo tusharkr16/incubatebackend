@@ -15,6 +15,10 @@ import { AuditModule } from './modules/audit/audit.module';
 import { IntelligenceModule } from './modules/intelligence/intelligence.module';
 import { CohortModule } from './modules/cohorts/cohort.module';
 import { FundingInterestsModule } from './modules/funding-interests/funding-interests.module';
+import { AccountManagerModule } from './modules/account-manager/account-manager.module';
+import { GrantsModule } from './modules/grants/grants.module';
+import { ChatModule } from './modules/chat/chat.module';
+import { BudgetModule } from './modules/budget/budget.module';
 import { AppController } from './app.controller';
 
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -46,6 +50,10 @@ import { RolesGuard } from './common/guards/roles.guard';
     IntelligenceModule,
     CohortModule,
     FundingInterestsModule,
+    AccountManagerModule,
+    GrantsModule,
+    ChatModule,
+    BudgetModule,
   ],
   controllers: [AppController],
   providers: [

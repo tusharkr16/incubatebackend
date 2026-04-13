@@ -4,6 +4,8 @@ export declare class CreateFundingInterestDto {
     amount: number;
     currency?: string;
     message?: string;
+    phone?: string;
+    contactUrl?: string;
 }
 export declare class UpdateFundingInterestDto {
     status: FundingInterestStatus;
